@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { ArrowRight, Mail } from 'lucide-react';
 
 export default function CTAFooter() {
@@ -6,28 +6,56 @@ export default function CTAFooter() {
   const [status, setStatus] = useState('idle'); // idle | loading | success | error
   const [message, setMessage] = useState('');
 
+  const backendUrl = useMemo(() => import.meta.env.VITE_BACKEND_URL?.replace(/\/$/, ''), []);
+
+  const validateEmail = (value) => {
+    // Basic RFC 5322 compliant-ish email check
+    return /[^\s@]+@[^\s@]+\.[^\s@]+/.test(value);
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!email) return;
+    if (!validateEmail(email)) {
+      setStatus('error');
+      setMessage('Enter a valid email address.');
+      return;
+    }
+
     setStatus('loading');
     setMessage('');
 
     try {
-      const res = await fetch(`${import.meta.env.VITE_BACKEND_URL}/waitlist`, {
+      if (!backendUrl) throw new Error('Backend URL not configured');
+
+      const res = await fetch(`${backendUrl}/waitlist`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, source: 'footer' }),
       });
 
-      if (!res.ok) throw new Error('Request failed');
-      const data = await res.json();
+      const contentType = res.headers.get('content-type');
+      let data = null;
+      if (contentType && contentType.includes('application/json')) {
+        data = await res.json();
+      }
 
+      if (!res.ok) {
+        const detail = data?.detail || data?.message;
+        throw new Error(detail || `Request failed with ${res.status}`);
+      }
+
+      const successMsg = data?.message || 'Thanks! You\'re on the list.';
       setStatus('success');
-      setMessage(data?.message || 'Thanks! We’ll be in touch soon.');
+      setMessage(successMsg);
       setEmail('');
     } catch (err) {
+      console.error('Waitlist error:', err);
       setStatus('error');
-      setMessage('Something went wrong. Please try again.');
+      setMessage(
+        err?.message?.includes('URL not configured')
+          ? 'Waitlist is temporarily unavailable. Please try again shortly.'
+          : 'Something went wrong. Please try again.'
+      );
     }
   };
 

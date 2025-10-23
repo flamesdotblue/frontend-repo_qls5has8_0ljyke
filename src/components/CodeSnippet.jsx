@@ -85,7 +85,7 @@ export default function CodeSnippet() {
               )}
             </button>
           </div>
-          <pre className="relative m-0 max-h-[460px] w-full overflow-auto p-4 text-sm leading-relaxed text-white/90">
+          <pre className="relative m-0 max-h[460px] w-full overflow-auto p-4 text-sm leading-relaxed text-white/90">
             <code>{code}</code>
           </pre>
           <div className="flex items-center gap-2 border-t border-white/10 bg-white/[0.02] px-4 py-2 text-xs text-white/60">
